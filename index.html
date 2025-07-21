@@ -23,9 +23,8 @@
   <canvas id="gameCanvas" width="600" height="800"></canvas>
 
   <!-- Audio -->
-  <audio id="shootSound" src="https://actions.google.com/sounds/v1/impacts/metal_thud_and_hiss.ogg"></audio>
-  <audio id="hitSound" src="https://actions.google.com/sounds/v1/horror/zombie_groan.ogg"></audio>
-
+  <audio id="shootSound" src="sounds/shoot.mp3" preload="auto"></audio>
+  <audio id="hitSound" src="sounds/zombie_hit.mp3" preload="auto"></audio>
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
