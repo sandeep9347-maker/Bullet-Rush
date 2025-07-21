@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zombie Shooter Game</title>
+  <style>
+    canvas {
+      background: #111;
+      display: block;
+      margin: 0 auto;
+      border: 2px solid white;
+    }
+    body {
+      text-align: center;
+      background-color: black;
+      color: white;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <h1>💥 Zombie Shooter Game</h1>
+  <canvas id="gameCanvas" width="600" height="800"></canvas>
+
+  <!-- Audio -->
+  <audio id="shootSound" src="https://actions.google.com/sounds/v1/impacts/metal_thud_and_hiss.ogg"></audio>
+  <audio id="hitSound" src="https://actions.google.com/sounds/v1/horror/zombie_groan.ogg"></audio>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const shootSound = document.getElementById("shootSound");
+    const hitSound = document.getElementById("hitSound");
+
+    const player = {
+      x: canvas.width / 2 - 25,
+      y: canvas.height - 60,
+      width: 50,
+      height: 40,
+      speed: 6,
+      emoji: "🤠"
+    };
+
+    let bullets = [];
+    let enemies = [];
+    let score = 0;
+    let lives = 5;
+    let gameOver = false;
+    let keys = {};
+
+    function drawEmoji(obj) {
+      ctx.font = "40px serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(obj.emoji, obj.x + obj.width / 2, obj.y);
+    }
+
+    function drawRect(obj) {
+      ctx.fillStyle = obj.color;
+      ctx.fillRect(obj.x, obj.y, obj.width, obj.height);
+    }
+
+    function spawnEnemy() {
+      if (Math.random() < 0.02) {
+        enemies.push({
+          x: Math.random() * (canvas.width - 40),
+          y: -40,
+          width: 40,
+          height: 40,
+          speed: 2 + Math.random() * 2,
+          emoji: "🧟"
+        });
+      }
+    }
+
+    function drawLives() {
+      ctx.font = "20px serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = "white";
+      ctx.fillText("❤️".repeat(lives), 20, 10);
+    }
+
+    function showGameOver() {
+      ctx.fillStyle = "rgba(0,0,0,0.7)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "white";
+      ctx.font = "48px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("💀 Game Over 💀", canvas.width / 2, canvas.height / 2 - 40);
+      ctx.font = "24px Arial";
+      ctx.fillText("Score: " + score, canvas.width / 2, canvas.height / 2 + 10);
+      ctx.fillText("Press R to Restart", canvas.width / 2, canvas.height / 2 + 50);
+    }
+
+    function updateGame() {
+      if (gameOver) {
+        showGameOver();
+        return;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Player movement
+      if (keys["ArrowLeft"] && player.x > 0) {
+        player.x -= player.speed;
+      }
+      if (keys["ArrowRight"] && player.x + player.width < canvas.width) {
+        player.x += player.speed;
+      }
+
+      drawEmoji(player);
+
+      // Bullets
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        bullets[i].y -= bullets[i].speed;
+        drawRect(bullets[i]);
+        if (bullets[i].y < 0) bullets.splice(i, 1);
+      }
+
+      // Enemies
+      spawnEnemy();
+      for (let i = enemies.length - 1; i >= 0; i--) {
+        enemies[i].y += enemies[i].speed;
+        drawEmoji(enemies[i]);
+
+        // Check if enemy hits player
+        if (
+          enemies[i].x < player.x + player.width &&
+          enemies[i].x + enemies[i].width > player.x &&
+          enemies[i].y + enemies[i].height > player.y
+        ) {
+          enemies.splice(i, 1);
+          lives--;
+          if (lives <= 0) gameOver = true;
+        } else if (enemies[i].y > canvas.height) {
+          enemies.splice(i, 1);
+        }
+      }
+
+      // Collision: bullet vs enemy
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const b = bullets[i];
+          const e = enemies[j];
+          if (
+            b.x < e.x + e.width &&
+            b.x + b.width > e.x &&
+            b.y < e.y + e.height &&
+            b.y + b.height > e.y
+          ) {
+            bullets.splice(i, 1);
+            enemies.splice(j, 1);
+            score++;
+            hitSound.currentTime = 0;
+            hitSound.play();
+            break;
+          }
+        }
+      }
+
+      // UI
+      drawLives();
+      ctx.fillStyle = "white";
+      ctx.font = "20px Arial";
+      ctx.textAlign = "right";
+      ctx.fillText("Score: " + score, canvas.width - 20, 30);
+
+      requestAnimationFrame(updateGame);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      keys[e.key] = true;
+
+      if ((e.key === " " || e.code === "Space") && bullets.length < 10 && !gameOver) {
+        bullets.push({
+          x: player.x + player.width / 2 - 3,
+          y: player.y,
+          width: 6,
+          height: 12,
+          speed: 8,
+          color: "yellow"
+        });
+        shootSound.currentTime = 0;
+        shootSound.play();
+      }
+
+      if (e.key === "r" || e.key === "R") {
+        // Restart the game
+        bullets = [];
+        enemies = [];
+        score = 0;
+        lives = 5;
+        gameOver = false;
+        player.x = canvas.width / 2 - 25;
+        updateGame();
+      }
+    });
+
+    document.addEventListener("keyup", (e) => {
+      keys[e.key] = false;
+    });
+
+    updateGame();
+  </script>
+</body>
+</html>
